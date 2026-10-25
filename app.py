@@ -35,4 +35,4 @@ def render_zona_expertos():
     st.success(f"**Análisis de Situación:** {SINTESIS_MATRICIAL}")
 
 # Elimina el numeral (#) de abajo si quieres que se ejecute inmediatamente al final de tu app.py
-# render_zona_expertos()
+render_zona_expertos()
