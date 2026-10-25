@@ -94,5 +94,43 @@ def render_zona_expertos():
     st.success(f"**Análisis de Situación:** {SINTESIS_MATRICIAL}")
 
 # Ejecución de la Zona Expertos
-render_zona_expertos()
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🪙 Bitcoin ($BTC)")
+        st.error(f"**Liquidaciones:** {BTC_LIQ}")
+        st.info(f"**Flujos/Ballenas:** {BTC_FLOWS}")
+        st.warning(BTC_RANGES)
+
+    with col2:
+        st.markdown("### ☀️ Solana ($SOL)")
+        st.error(f"**OI & Funding:** {SOL_OI}")
+        st.info(f"**On-Chain:** {SOL_FLOWS}")
+        st.warning(SOL_RANGES)
+
+    st.markdown("### 📊 Síntesis de Sentimiento Matricial")
+    st.success(f"**Análisis de Situación:** {SINTESIS_MATRICIAL}")
+
+    # =================================================================
+    # NUEVA ESTRUCTURA DEL BOTÓN FÍSICO (Alineado con 4 espacios)
+    # =================================================================
+    st.markdown("---")
+    st.subheader("Zona Expertos: Inyección Manual de Datos (Grok)")
+
+    with st.form(key="expert_data_form", clear_on_submit=False):
+        grok_raw_input = st.text_area(
+            label="Pega aquí el reporte generado por el Súper-Prompt:",
+            height=250,
+            placeholder="### 1. MÉTRICAS CRÍTICAS $BTC..."
+        )
+        submit_button = st.form_submit_button(label="⚡ Actualizar Matriz de Sentimiento")
+
+    if submit_button:
+        if grok_raw_input.strip() != "":
+            st.success("¡Datos recibidos con éxito! Procesando matriz...")
+            # Aquí es donde se ejecuta tu renderizador original al presionar el botón
+            render_zona_expertos()
+        else:
+            st.warning("La caja de texto está vacía. Pega el reporte antes de presionar el botó
+            n.")
 
