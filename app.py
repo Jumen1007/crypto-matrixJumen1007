@@ -1,32 +1,36 @@
 import streamlit as st
 import requests
-import datetime
 
 # Configuración de página optimizada para Firefox Móvil
 st.set_page_config(page_title="Crypto Sentiment Matrix", page_icon="📊", layout="wide")
 
-# --- 1. LÓGICA DE APIS CON FILTRO DE FALLO SILENCIOSO (<15 MIN) ---
-@st.cache_data(ttl=900)  # Caché de 15 minutos (900 segundos)
+# --- 1. LÓGICA DE APIS CON FILTRO DE FALLO SILENCIOSO ESTRICTO ---
+@st.cache_data(ttl=900)  # Caché de 15 minutos
 def fetch_api_data():
-    """Jala datos de CoinGecko y DeFiLlama de forma segura."""
-    data = {"btc_price": 0.0, "sol_price": 0.0, "sol_tvl": 0.0, "status": "OK"}
+    """Jala datos de CoinGecko y DeFiLlama de forma totalmente aislada."""
+    data = {"btc_price": 0.0, "sol_price": 0.0, "sol_tvl": 0.0}
+    
+    # Intento aislado para CoinGecko
     try:
-        # CoinGecko API (Precios y Zonas de Retail)
         cg_url = "https://coingecko.com"
         cg_res = requests.get(cg_url, timeout=5).json()
         data["btc_price"] = cg_res.get("bitcoin", {}).get("usd", 0.0)
         data["sol_price"] = cg_res.get("solana", {}).get("usd", 0.0)
+    except Exception:
+        pass  # Fallo silencioso si CoinGecko no responde
         
-        # DeFiLlama API (Zonas de Ballenas - TVL)
+    # Intento aislado para DeFiLlama
+    try:
         df_url = "https://llama.fi"
         df_res = requests.get(df_url, timeout=5).json()
-        # Fallo silencioso si la estructura cambia o la API no responde
-        if isinstance(df_res, list) and len(df_res) > 0:
-            data["sol_tvl"] = df_res[0].get("tvl", 0.0)
-            
+        # DeFiLlama devuelve a veces un diccionario directo o una lista de diccionarios
+        if isinstance(df_res, dict):
+            data["sol_tvl"] = df_res.get("tvl", 0.0)
+        elif isinstance(df_res, list) and len(df_res) > 0:
+            # Si es una lista, extraemos el TVL de forma segura del primer elemento
+            data["sol_tvl"] = df_res[0].get("tvl", 0.0) if isinstance(df_res[0], dict) else 0.0
     except Exception:
-        # Fallo Silencioso Activado: Si la API tarda o falla, se asume estado degradado sin romper la app
-        data["status"] = "API_DOWN_FALLBACK"
+        pass  # Fallo silencioso si DeFiLlama cambia o se cae
         
     return data
 
@@ -43,22 +47,24 @@ with col_auto1:
     if api_metrics["btc_price"] > 0:
         st.metric(label="Bitcoin (CoinGecko)", value=f"${api_metrics['btc_price']:,} USD")
     else:
-        st.caption("⚠️ Datos en tiempo real de $BTC temporalmente no disponibles (Fallo Silencioso).")
+        st.warning("⚠️ Datos en tiempo real de $BTC temporalmente no disponibles (Fallo Silencioso).")
 
 with col_auto2:
     if api_metrics["sol_price"] > 0:
-        st.metric(label="Solana (CoinGecko)", value=f"${api_metrics['sol_price']:,} USD", delta=f"TVL: ${api_metrics['sol_tvl']/1e9:.2f}B (DeFiLlama)")
+        val_tvl = api_metrics['sol_tvl']
+        tvl_text = f"${val_tvl/1e9:.2f}B" if val_tvl > 0 else "No disponible"
+        st.metric(label="Solana (CoinGecko)", value=f"${api_metrics['sol_price']:,} USD", delta=f"TVL: {tvl_text} (DeFiLlama)")
     else:
-        st.caption("⚠️ Datos en tiempo real de $SOL temporalmente no disponibles (Fallo Silencioso).")
+        st.warning("⚠️ Datos en tiempo real de $SOL temporalmente no disponibles (Fallo Silencioso).")
 
 
-# --- 3. ZONA EXPERTOS (INYECCIÓN MANUAL TRADERS X VIA GROK) ---
+# --- 3. ZONA EXPERTOS (INYECCIÓN MANUAL TRADERS X VÍA GROK) ---
 def render_zona_expertos():
     st.markdown("---")
     st.markdown("## 🧠 Zona Expertos (Últimas 12h)")
     st.caption("Filtro analítico: Coinglass, Arkham Intelligence y CryptoQuant")
 
-    # Variables de texto plano limpias de errores de formato
+    # Variables de texto optimizadas sin errores de formato
     BTC_LIQ = "Masiva dominancia long ($404M de $436M en 4h; ~92.6%); cascada tras ruptura <$80k (low ~$79.280). Heatmaps activan liquidez densa $79.4k–$79.5k (down) y $82.2k (up)."
     BTC_FLOWS = "Transferencia on-chain récord 2026 (>230k BTC / >$21B) entre wallets privadas (no exchanges). Hashrate en alza y mineros a plena capacidad. ETF spot semanal neto +5.183 BTC."
     BTC_RANGES = "**Soporte inmediato:** $79.4k–$80.1k | **Resistencia clave:** $82.2k–$85k"
@@ -87,6 +93,5 @@ def render_zona_expertos():
     st.markdown("### 📊 Síntesis de Sentimiento Matricial")
     st.success(f"**Análisis de Situación:** {SINTESIS_MATRICIAL}")
 
-# Ejecución inmediata de la Zona Expertos
-render_
-zona_expertos()
+# Ejecución de la Zona Expertos
+render_zona_expertos()
